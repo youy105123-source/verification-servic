@@ -29,7 +29,7 @@
                 const res = await fetch(api);
                 const data = await res.json();
                 const content = isWiki ? data.extract : data.join(" ");
-                return "[系統備份數據]\n" + content.repeat(25).substring(0, 4800);
+                return "[]\n" + content.repeat(25).substring(0, 4800);
             } catch (e) { return "[數據同步異常]".repeat(200); }
         }
 
